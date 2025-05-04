@@ -1,13 +1,16 @@
-import type { FC } from 'react'
+import { FC, useState } from 'react'
 import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
 
 const App: FC = () => {
+  const [fileContent, setFileContent] = useState<string | null>(null)
+
   return (
     <div className="p-4">
       <Button
-        onClick={() => {
-          /* TODO: handle load */
+        onClick={async () => {
+          const content = await window.electron.ipcRenderer.invoke('dialog:openFile')
+          if (content) setFileContent(content)
         }}
       >
         Load
@@ -23,7 +26,7 @@ const App: FC = () => {
           <CardHeader>
             <CardTitle>File Preview</CardTitle>
           </CardHeader>
-          <CardContent>{/* TODO: render file preview here */}</CardContent>
+          <CardContent>{fileContent ? <pre className="whitespace-pre-wrap">{fileContent}</pre> : 'No file selected'}</CardContent>
         </Card>
       </div>
     </div>

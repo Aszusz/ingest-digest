@@ -1,7 +1,8 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import * as fs from 'fs'
 
 function createWindow(): void {
   // Create the browser window.
@@ -47,6 +48,14 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  // Handle open file dialog and return file content
+  ipcMain.handle('dialog:openFile', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'] })
+    if (canceled || filePaths.length === 0) return null
+    const content = fs.readFileSync(filePaths[0], 'utf-8')
+    return content
   })
 
   // IPC test
