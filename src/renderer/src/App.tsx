@@ -2,6 +2,7 @@ import { FC, ReactNode, useState } from 'react'
 import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
 import { ChevronRight, ChevronDown } from 'lucide-react'
+import { ScrollArea } from './components/shadcn/ScrollArea'
 
 // Type for directory nodes
 interface DirNode {
@@ -64,7 +65,7 @@ const App: FC = () => {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-screen flex flex-col overflow-hidden">
       <Button
         onClick={async () => {
           const tree = await window.electron.ipcRenderer.invoke('dialog:openDirectory')
@@ -73,18 +74,24 @@ const App: FC = () => {
       >
         Load
       </Button>
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <Card>
+      <div className="flex flex-1 gap-4 mt-4 min-h-0">
+        <Card className="flex flex-col h-full w-1/4 min-h-0">
           <CardHeader>
             <CardTitle>File Explorer</CardTitle>
           </CardHeader>
-          <CardContent>{dirTree ? renderTree(dirTree) : 'No directory selected'}</CardContent>
+          <CardContent className="flex-1 p-0 min-h-0">
+            <ScrollArea className="h-full">
+              {dirTree ? renderTree(dirTree) : 'No directory selected'}
+            </ScrollArea>
+          </CardContent>
         </Card>
-        <Card>
+        <Card className="flex flex-col h-full flex-1 min-h-0">
           <CardHeader>
             <CardTitle>File Preview</CardTitle>
           </CardHeader>
-          <CardContent>No file preview</CardContent>
+          <CardContent className="flex-1 p-0 min-h-0">
+            <ScrollArea className="h-full">No file preview</ScrollArea>
+          </CardContent>
         </Card>
       </div>
     </div>
