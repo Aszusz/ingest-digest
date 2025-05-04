@@ -23,6 +23,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
+    "@radix-ui/react-collapsible": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.0",
     "@tailwindcss/vite": "^4.1.5",
     "class-variance-authority": "^0.7.1",

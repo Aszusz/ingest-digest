@@ -1,6 +1,11 @@
-import { FC, JSX, useState } from 'react'
+import { FC, ReactNode, useState } from 'react'
 import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent
+} from './components/shadcn/Collapsible'
 
 // Type for directory nodes
 interface DirNode {
@@ -12,18 +17,26 @@ interface DirNode {
 
 const App: FC = () => {
   const [dirTree, setDirTree] = useState<DirNode | null>(null)
-  // Recursive tree renderer
-  const renderTree = (node: DirNode): JSX.Element => (
-    <ul key={node.path}>
-      <li>
-        {node.isDirectory ? '📁 ' : '📄 '}
-        {node.name}
-        {node.isDirectory && node.children && (
-          <div className="ml-4">{node.children.map((child) => renderTree(child))}</div>
-        )}
-      </li>
-    </ul>
-  )
+  // Recursive tree renderer using Collapsible
+  const renderTree = (node: DirNode): ReactNode => {
+    if (node.isDirectory) {
+      return (
+        <Collapsible key={node.path} defaultOpen className="mb-1">
+          <CollapsibleTrigger className="flex items-center gap-1">
+            📁 {node.name}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="ml-4">
+            {node.children?.map((child) => renderTree(child))}
+          </CollapsibleContent>
+        </Collapsible>
+      )
+    }
+    return (
+      <div key={node.path} className="flex items-center gap-1 ml-6">
+        📄 {node.name}
+      </div>
+    )
+  }
 
   return (
     <div className="p-4">
