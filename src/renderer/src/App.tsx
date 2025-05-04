@@ -3,77 +3,76 @@ import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import { ScrollArea } from './components/shadcn/ScrollArea'
-
-// Type for directory nodes
-interface DirNode {
-  name: string
-  path: string
-  isDirectory: boolean
-  children?: DirNode[]
-  isOpen?: boolean
-  checked?: boolean
-  indeterminate?: boolean
-}
+import type { DirNode, FileNode, FsNode } from '../../types'
 
 const App: FC = () => {
-  const [dirTree, setDirTree] = useState<DirNode | null>(null)
+  const [dirTree, setDirTree] = useState<FsNode | null>(null)
   // Initialize tree nodes with closed state
-  const initTree = (node: DirNode): DirNode => ({
-    ...node,
-    isOpen: false,
-    checked: false,
-    indeterminate: false,
-    children: node.children?.map(initTree)
-  })
+  const initTree = (node: FsNode): FsNode => {
+    if (node.type === 'directory') {
+      return {
+        ...node,
+        isOpen: false,
+        children: node.children?.map(initTree)
+      } as DirNode
+    }
+    return node
+  }
   // Toggle open/closed state by path
   const toggleNode = (path: string): void => {
-    const toggle = (n: DirNode): DirNode => {
-      if (n.path === path) return { ...n, isOpen: !n.isOpen }
-      if (n.children) return { ...n, children: n.children.map(toggle) }
+    const toggle = (n: FsNode): FsNode => {
+      if (n.type === 'directory') {
+        if (n.path === path) {
+          return { ...n, isOpen: !n.isOpen } as DirNode
+        }
+        if (n.children) {
+          return { ...n, children: n.children.map(toggle) } as DirNode
+        }
+      }
       return n
     }
-    setDirTree((prev) => (prev ? toggle(prev) : null))
+    setDirTree((prev) => (prev ? (toggle(prev) as FsNode) : null))
   }
   // Toggle selection (checked/indeterminate) for nodes
   const toggleSelect = (path: string): void => {
     setDirTree((prev) => {
       if (!prev) return null
-      let newChecked = false
-      const applySubtree = (n: DirNode, checked: boolean): DirNode => ({
-        ...n,
-        checked,
-        indeterminate: false,
-        children: n.children?.map((child) => applySubtree(child, checked))
-      })
-      const applyToggle = (n: DirNode): DirNode => {
+      let newState: 'checked' | 'unchecked'
+      const applySubtree = (n: FsNode, state: 'checked' | 'unchecked'): FsNode =>
+        n.type === 'directory'
+          ? ({ ...n, state, children: n.children?.map((c) => applySubtree(c, state)) } as DirNode)
+          : ({ ...n, state } as FileNode)
+      const applyToggle = (n: FsNode): FsNode => {
         if (n.path === path) {
-          newChecked = !(n.checked ?? false)
-          return applySubtree(n, newChecked)
+          newState = n.state === 'checked' ? 'unchecked' : 'checked'
+          return applySubtree(n, newState)
         }
-        if (n.children) return { ...n, children: n.children.map(applyToggle) }
+        if (n.type === 'directory' && n.children) {
+          return { ...n, children: n.children.map(applyToggle) } as DirNode
+        }
         return n
       }
       const toggled = applyToggle(prev)
-      const recalc = (n: DirNode): DirNode => {
-        if (n.children && n.children.length > 0) {
+      const recalc = (n: FsNode): FsNode => {
+        if (n.type === 'directory' && n.children && n.children.length > 0) {
           const children = n.children.map(recalc)
-          const allChecked = children.every((c) => c.checked)
-          const noneChecked = children.every((c) => !c.checked && !c.indeterminate)
-          return {
-            ...n,
-            children,
-            checked: allChecked,
-            indeterminate: !allChecked && !noneChecked
-          }
+          const allChecked = children.every((c) => c.state === 'checked')
+          const noneChecked = children.every((c) => c.state === 'unchecked')
+          const state: DirNode['state'] = allChecked
+            ? 'checked'
+            : noneChecked
+              ? 'unchecked'
+              : 'partially-checked'
+          return { ...n, children, state } as DirNode
         }
         return n
       }
-      return recalc(toggled)
+      return recalc(toggled) as FsNode
     })
   }
   // Recursive tree renderer
-  const renderTree = (node: DirNode): ReactNode => {
-    if (node.isDirectory) {
+  const renderTree = (node: FsNode): ReactNode => {
+    if (node.type === 'directory') {
       return (
         <div key={node.path} className="mb-1">
           <div className="flex items-center gap-1">
@@ -92,10 +91,10 @@ const App: FC = () => {
             </button>
             <input
               type="checkbox"
-              checked={node.checked}
+              checked={node.state === 'checked'}
               ref={(el) => {
                 if (el) {
-                  el.indeterminate = node.indeterminate ?? false
+                  el.indeterminate = node.state === 'partially-checked'
                 }
               }}
               onChange={(e) => {
@@ -110,7 +109,7 @@ const App: FC = () => {
           {node.isOpen && node.children && (
             <div className="ml-4">
               {[...node.children]
-                .sort((a, b) => (a.isDirectory === b.isDirectory ? 0 : a.isDirectory ? -1 : 1))
+                .sort((a, b) => (a.type === b.type ? 0 : a.type === 'directory' ? -1 : 1))
                 .map((child) => renderTree(child))}
             </div>
           )}
@@ -122,7 +121,7 @@ const App: FC = () => {
         <span className="w-4 h-4 inline-block" />
         <input
           type="checkbox"
-          checked={node.checked}
+          checked={node.state === 'checked'}
           onChange={(e) => {
             e.stopPropagation()
             toggleSelect(node.path)
@@ -140,7 +139,7 @@ const App: FC = () => {
       <Button
         onClick={async () => {
           const tree = await window.electron.ipcRenderer.invoke('dialog:openDirectory')
-          if (tree) setDirTree(initTree(tree as DirNode))
+          if (tree) setDirTree(initTree(tree as FsNode))
         }}
       >
         Load

@@ -3,6 +3,7 @@ import { join, basename } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as fs from 'fs'
+import type { DirNode, FsNode } from '../types'
 
 function createWindow(): void {
   // Create the browser window.
@@ -51,29 +52,34 @@ app.whenReady().then(() => {
   })
 
   // Handle open directory dialog and return directory tree
-  ipcMain.handle('dialog:openDirectory', async () => {
+  ipcMain.handle('dialog:openDirectory', async (): Promise<FsNode | null> => {
     const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled || filePaths.length === 0) return null
     const dirPath = filePaths[0]
-    function readTree(directory: string): unknown {
+    function readTree(directory: string): FsNode[] {
       const dirents = fs.readdirSync(directory, { withFileTypes: true })
       return dirents.map((dirent) => {
         const fullPath = join(directory, dirent.name)
         if (dirent.isDirectory()) {
+          const subChildren = readTree(fullPath)
           return {
+            type: 'directory',
             name: dirent.name,
             path: fullPath,
-            isDirectory: true,
-            children: readTree(fullPath)
+            isOpen: false,
+            state: 'unchecked',
+            children: subChildren
           }
         }
-        return { name: dirent.name, path: fullPath, isDirectory: false }
+        return { type: 'file', name: dirent.name, path: fullPath, state: 'unchecked' }
       })
     }
-    const tree = {
+    const tree: DirNode = {
+      type: 'directory',
       name: basename(dirPath),
       path: dirPath,
-      isDirectory: true,
+      isOpen: false,
+      state: 'unchecked',
       children: readTree(dirPath)
     }
     return tree
