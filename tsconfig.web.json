@@ -14,6 +14,8 @@
       "@renderer/*": [
         "src/renderer/src/*"
       ]
-    }
+    },
+    // Ensures compatibility with ESM-only packages (e.g., @tailwindcss/vite)
+    "moduleResolution": "bundler"
   }
 }
