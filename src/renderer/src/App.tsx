@@ -1,16 +1,36 @@
-import { FC, useState } from 'react'
+import { FC, JSX, useState } from 'react'
 import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
 
+// Type for directory nodes
+interface DirNode {
+  name: string
+  path: string
+  isDirectory: boolean
+  children?: DirNode[]
+}
+
 const App: FC = () => {
-  const [fileContent, setFileContent] = useState<string | null>(null)
+  const [dirTree, setDirTree] = useState<DirNode | null>(null)
+  // Recursive tree renderer
+  const renderTree = (node: DirNode): JSX.Element => (
+    <ul key={node.path}>
+      <li>
+        {node.isDirectory ? '📁 ' : '📄 '}
+        {node.name}
+        {node.isDirectory && node.children && (
+          <div className="ml-4">{node.children.map((child) => renderTree(child))}</div>
+        )}
+      </li>
+    </ul>
+  )
 
   return (
     <div className="p-4">
       <Button
         onClick={async () => {
-          const content = await window.electron.ipcRenderer.invoke('dialog:openFile')
-          if (content) setFileContent(content)
+          const tree = await window.electron.ipcRenderer.invoke('dialog:openDirectory')
+          if (tree) setDirTree(tree as DirNode)
         }}
       >
         Load
@@ -20,13 +40,13 @@ const App: FC = () => {
           <CardHeader>
             <CardTitle>File Explorer</CardTitle>
           </CardHeader>
-          <CardContent>{/* TODO: render file tree explorer here */}</CardContent>
+          <CardContent>{dirTree ? renderTree(dirTree) : 'No directory selected'}</CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>File Preview</CardTitle>
           </CardHeader>
-          <CardContent>{fileContent ? <pre className="whitespace-pre-wrap">{fileContent}</pre> : 'No file selected'}</CardContent>
+          <CardContent>No file preview</CardContent>
         </Card>
       </div>
     </div>

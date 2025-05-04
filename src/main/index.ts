@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'path'
+import { join, basename } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as fs from 'fs'
@@ -50,12 +50,33 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // Handle open file dialog and return file content
-  ipcMain.handle('dialog:openFile', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'] })
+  // Handle open directory dialog and return directory tree
+  ipcMain.handle('dialog:openDirectory', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openDirectory'] })
     if (canceled || filePaths.length === 0) return null
-    const content = fs.readFileSync(filePaths[0], 'utf-8')
-    return content
+    const dirPath = filePaths[0]
+    function readTree(directory: string): unknown {
+      const dirents = fs.readdirSync(directory, { withFileTypes: true })
+      return dirents.map((dirent) => {
+        const fullPath = join(directory, dirent.name)
+        if (dirent.isDirectory()) {
+          return {
+            name: dirent.name,
+            path: fullPath,
+            isDirectory: true,
+            children: readTree(fullPath)
+          }
+        }
+        return { name: dirent.name, path: fullPath, isDirectory: false }
+      })
+    }
+    const tree = {
+      name: basename(dirPath),
+      path: dirPath,
+      isDirectory: true,
+      children: readTree(dirPath)
+    }
+    return tree
   })
 
   // IPC test
