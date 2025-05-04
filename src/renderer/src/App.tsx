@@ -104,16 +104,21 @@ const App: FC = () => {
               }}
               className="h-4 w-4"
             />
-            <span>📁 {node.name}</span>
+            <span>📁</span>
+            {node.name}
           </div>
           {node.isOpen && node.children && (
-            <div className="ml-4">{node.children.map((child) => renderTree(child))}</div>
+            <div className="ml-4">
+              {[...node.children]
+                .sort((a, b) => (a.isDirectory === b.isDirectory ? 0 : a.isDirectory ? -1 : 1))
+                .map((child) => renderTree(child))}
+            </div>
           )}
         </div>
       )
     }
     return (
-      <div key={node.path} className="flex items-center gap-1 ml-6">
+      <div key={node.path} className="flex items-center gap-1">
         <span className="w-4 h-4 inline-block" />
         <input
           type="checkbox"
@@ -124,7 +129,8 @@ const App: FC = () => {
           }}
           className="h-4 w-4"
         />
-        <span>📄 {node.name}</span>
+        <span>📄</span>
+        {node.name}
       </div>
     )
   }
