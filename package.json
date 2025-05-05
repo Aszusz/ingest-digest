@@ -22,6 +22,12 @@
     "build:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
     "build:linux": "electron-vite build && electron-builder --linux"
   },
+  "build": {
+    "mac": {
+      "target": ["dmg"],
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
+  },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
