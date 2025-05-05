@@ -96,6 +96,7 @@ jobs:
         with:
           tag_name: ${{ inputs.version }}
           name: 'Release ${{ inputs.version }}'
+          token: ${{ secrets.RELEASE_TOKEN }}
           draft: false
           prerelease: false
           files: |
