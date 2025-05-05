@@ -3,7 +3,7 @@ import { LoadButton } from './components/LoadButton'
 import { FilePreview } from './components/FilePreview'
 import { useFsTree } from './hooks/useFsTree'
 import { useFilePreview } from './hooks/useFilePreview'
-import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
+import { Card, CardContent } from './components/shadcn/Card'
 import { ScrollArea } from './components/shadcn/ScrollArea'
 import { FileTree } from './components/FileExplorer/FileTree'
 
@@ -16,9 +16,6 @@ const App: FC = () => {
       <LoadButton onLoad={loadTree} />
       <div className="flex flex-1 gap-4 mt-4 min-h-0">
         <Card className="flex flex-col h-full w-1/4 min-h-0">
-          <CardHeader>
-            <CardTitle>File Explorer</CardTitle>
-          </CardHeader>
           <CardContent className="flex-1 p-0 min-h-0">
             <ScrollArea className="h-full">
               <FileTree tree={dirTree} onToggle={toggleNode} onSelect={toggleSelect} />
