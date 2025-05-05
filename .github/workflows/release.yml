@@ -1,9 +1,12 @@
 name: Build/release Electron app
 
 on:
-  push:
-    tags:
-      - v*.*.*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version'
+        required: true
+        type: string
 
 jobs:
   release:
@@ -41,6 +44,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
+          tag_name: ${{ inputs.version }}
           files: |
             dist/*.exe
             dist/*.zip
