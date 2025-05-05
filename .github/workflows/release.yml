@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build on ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     strategy:
       matrix:
         include:
