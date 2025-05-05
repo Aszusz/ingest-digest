@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (SemVer, e.g. v1.2.3 or 1.2.3)'
+        description: 'Release version'
         required: true
         type: string
         default: 'v1.0.0'
@@ -74,6 +74,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
+
+      - run: ls -R dist
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
