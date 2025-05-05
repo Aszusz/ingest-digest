@@ -85,6 +85,25 @@ app.whenReady().then(() => {
     return tree
   })
 
+  ipcMain.handle(
+    'file:readFiles',
+    async (_event, paths: string[]): Promise<{ path: string; content: string }[]> => {
+      const results: { path: string; content: string }[] = []
+      for (const filePath of paths) {
+        try {
+          const content = await fs.promises.readFile(filePath, 'utf-8')
+          results.push({ path: filePath, content })
+        } catch (error) {
+          results.push({
+            path: filePath,
+            content: `Error reading file: ${error instanceof Error ? error.message : String(error)}`
+          })
+        }
+      }
+      return results
+    }
+  )
+
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 

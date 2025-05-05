@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from 'react'
+import { FC, ReactNode, useState, useEffect } from 'react'
 import { Button } from './components/shadcn/Button'
 import { Card, CardHeader, CardTitle, CardContent } from './components/shadcn/Card'
 import { ChevronRight, ChevronDown } from 'lucide-react'
@@ -7,6 +7,7 @@ import type { DirNode, FileNode, FsNode } from '../../types'
 
 const App: FC = () => {
   const [dirTree, setDirTree] = useState<FsNode | null>(null)
+  const [previewText, setPreviewText] = useState<string>('No file preview')
   // Initialize tree nodes with closed state
   const initTree = (node: FsNode): FsNode => {
     if (node.type === 'directory') {
@@ -134,6 +135,37 @@ const App: FC = () => {
     )
   }
 
+  useEffect(() => {
+    if (!dirTree) {
+      setPreviewText('No file preview')
+      return
+    }
+    const collectPaths = (node: FsNode): string[] => {
+      let paths: string[] = []
+      if (node.type === 'file' && node.state === 'checked') {
+        paths.push(node.path)
+      } else if (node.type === 'directory' && node.children) {
+        node.children.forEach((c) => {
+          paths = paths.concat(collectPaths(c))
+        })
+      }
+      return paths
+    }
+    const paths = collectPaths(dirTree)
+    if (paths.length === 0) {
+      setPreviewText('No file selected')
+      return
+    }
+    ;(async () => {
+      const results: { path: string; content: string }[] = await window.electron.ipcRenderer.invoke(
+        'file:readFiles',
+        paths
+      )
+      const combined = results.map((r) => `--- ${r.path} ---\n${r.content}`).join('\n\n')
+      setPreviewText(combined)
+    })()
+  }, [dirTree])
+
   return (
     <div className="p-4 h-screen flex flex-col overflow-hidden">
       <Button
@@ -160,7 +192,9 @@ const App: FC = () => {
             <CardTitle>File Preview</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 p-0 min-h-0">
-            <ScrollArea className="h-full">No file preview</ScrollArea>
+            <ScrollArea className="h-full">
+              <pre className="p-2 font-mono text-sm whitespace-pre-wrap">{previewText}</pre>
+            </ScrollArea>
           </CardContent>
         </Card>
       </div>
