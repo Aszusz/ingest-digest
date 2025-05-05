@@ -11,11 +11,31 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
+    name: Build on ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            arch: linux
+            build_cmd: npm run build:linux
+            artifact: app-linux
+            path: dist/*.AppImage
+          - os: windows-latest
+            arch: win
+            build_cmd: npm run build:win
+            artifact: app-windows
+            path: dist/*.exe
+          - os: macos-latest
+            arch: x64
+            build_cmd: npm run build:mac:x64
+            artifact: app-macos-x64
+            path: dist/*.dmg
+          - os: macos-latest
+            arch: arm64
+            build_cmd: npm run build:mac:arm64
+            artifact: app-macos-arm64
+            path: dist/*.dmg
 
     steps:
       - name: Checkout code
@@ -30,41 +50,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Build step per-OS
-      - name: Build for Linux (AppImage)
-        if: matrix.os == 'ubuntu-latest'
-        run: npm run build:linux
-      - name: Build for macOS
-        if: matrix.os == 'macos-latest'
-        run: npm run build:mac:x64
-      - name: Build for macOS arm64
-        if: matrix.os == 'macos-latest'
-        run: npm run build:mac:arm64
-      - name: Build for Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run build:win
+      - name: Build for ${{ matrix.os }} (${{
+          matrix.arch }})
+        run: ${{ matrix.build_cmd }}
 
-      # Upload only the relevant artifact for each OS
-      - name: Upload Linux AppImage
-        if: matrix.os == 'ubuntu-latest'
+      - name: Upload ${{ matrix.artifact }}
         uses: actions/upload-artifact@v4
         with:
-          name: app-linux
-          path: dist/*.AppImage
-
-      - name: Upload macOS artifact
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-macos
-          path: dist/*.dmg,
-
-      - name: Upload Windows artifact
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-windows
-          path: dist/*.exe
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
 
   release:
     name: Create GitHub Release
@@ -74,26 +68,11 @@ jobs:
       contents: write
 
     steps:
-      # Download each platform bundle
-      - name: Download Linux AppImage
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: app-linux
-          path: dist/linux
+          path: dist
 
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-macos
-          path: dist/macos
-
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-windows
-          path: dist/windows
-
-      # Create the release
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         env:
@@ -105,6 +84,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/linux/*.AppImage
-            dist/macos/*.dmg
-            dist/windows/*.exe
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.exe
