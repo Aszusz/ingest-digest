@@ -36,7 +36,10 @@ jobs:
         run: npm run build:linux
       - name: Build for macOS
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+        run: npm run build:mac:x64
+      - name: Build for macOS arm64
+        if: matrix.os == 'macos-latest'
+        run: npm run build:mac:arm64
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
         run: npm run build:win
@@ -54,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-macos
-          path: dist/*.dmg
+          path: dist/*.dmg,
 
       - name: Upload Windows artifact
         if: matrix.os == 'windows-latest'
