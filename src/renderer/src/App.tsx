@@ -161,8 +161,53 @@ const App: FC = () => {
         'file:readFiles',
         paths
       )
-      const combined = results.map((r) => `--- ${r.path} ---\n${r.content}`).join('\n\n')
-      setPreviewText(combined)
+      const combined = results
+        .map((r) => {
+          const name = r.path.split(/[/\\]/).pop() || r.path
+          return `================================================
+FILE: ${name}
+================================================
+${r.content}`
+        })
+        .join('\n\n')
+      // Generate directory structure for selected files
+      const relSegmentsList = paths.map((p) =>
+        p.split(/[\\/]/).slice(dirTree.path.split(/[\\/]/).length)
+      )
+      type TreeNode = { children: Map<string, TreeNode> }
+      const rootNode: TreeNode = { children: new Map() }
+      relSegmentsList.forEach((segments) => {
+        let curr = rootNode
+        segments.forEach((seg) => {
+          if (!curr.children.has(seg)) {
+            curr.children.set(seg, { children: new Map() })
+          }
+          curr = curr.children.get(seg)!
+        })
+      })
+      const lines: string[] = ['Directory structure:']
+      const printTree = (children: TreeNode['children'], prefix: string): void => {
+        const entries = Array.from(children.entries())
+        const dirs = entries
+          .filter(([, n]) => n.children.size > 0)
+          .sort(([a], [b]) => a.localeCompare(b))
+        const files = entries
+          .filter(([, n]) => n.children.size === 0)
+          .sort(([a], [b]) => a.localeCompare(b))
+        const sorted = [...dirs, ...files]
+        sorted.forEach(([name, node], idx) => {
+          const isLast = idx === sorted.length - 1
+          const branch = isLast ? '└── ' : '├── '
+          lines.push(prefix + branch + name + (node.children.size > 0 ? '/' : ''))
+          if (node.children.size > 0) {
+            printTree(node.children, prefix + (isLast ? '    ' : '│   '))
+          }
+        })
+      }
+      lines.push(`└── ${dirTree.name}/`)
+      printTree(rootNode.children, '    ')
+      const treeText = lines.join('\n')
+      setPreviewText(treeText + '\n\n' + combined)
     })()
   }, [dirTree])
 
